@@ -77,9 +77,16 @@ class ServerManager(commands.Cog):
             return
 
         if response.status_code == 200:
-            await interaction.followup.send("🟢 **Server is online**")
-        elif response.status_code == 400:
-            await interaction.followup.send("🔴 **Server is down**")
+            # Clean the response body and check the text content
+            result = response.text.strip().lower()
+            
+            if result == "true":
+                await interaction.followup.send("🟢 **Server is running**")
+            elif result == "false":
+                await interaction.followup.send("🔴 **Server is offline**")
+            else:
+                await interaction.followup.send(f"❓ Server returned 200, but unknown body: `{result}`")
+                
         elif response.status_code == 500:
             await interaction.followup.send("🔥 **Backend is not working as intended**")
         else:
