@@ -7,3 +7,5 @@ services:
     volumes:
       - ./logs:/app/logs # Maps local 'logs' folder to container
     restart: always
+    network-mode: "host"
+      
