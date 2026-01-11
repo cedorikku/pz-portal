@@ -1,0 +1,16 @@
+[Unit]
+Description=PZ Server API with node.js
+Documentation=https://github.com/cedorikku/pz-portal
+After=network.target
+
+[Service]
+Environment=PORT=<port>
+Environment=COMPOSE_FILE=<file>
+Environment=CONTAINER_NAME=<server-container-name>
+Type=simple
+User=<user>
+ExecStart=<your-node-install-in-bin> <your node index file>
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
