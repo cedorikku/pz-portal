@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import type { Status } from '../lib/serverContoller.js';
 
 import { Router } from 'express';
 
@@ -46,7 +47,7 @@ router.post('/stop', async (req: Request, res: Response) => {
 });
 
 router.get('/status', async (req: Request, res: Response) => {
-  const status: string = await controller.checkStatus();
+  const status: Status = await controller.checkStatus();
   res.status(200).send(status);
 });
 
