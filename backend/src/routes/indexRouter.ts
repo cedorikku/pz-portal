@@ -51,4 +51,30 @@ router.get('/status', async (req: Request, res: Response) => {
   res.status(200).send(status);
 });
 
+router.get('/presence', async (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  // Initial assumes that server is initially inactive
+  let status: Status = 'inactive';
+  res.write(`data: ${status}\n\n`);
+
+  req.on('close', () => {
+    res.end();
+  });
+
+  const _updateInterval = 10000; // 10 seconds
+  while (true) {
+    const newStatus: Status = await controller.checkStatus();
+
+    if (newStatus !== status) {
+      status = newStatus;
+      res.write(`data: ${status}\n\n`);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, _updateInterval));
+  }
+});
+
 export default router;
