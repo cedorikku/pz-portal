@@ -18,7 +18,7 @@ if (TOKEN is None):
 
 if (BASE_URL is None):
     raise ValueError("BASE_URL environment variable is not set.")
-elif BASE_URL.startswith(('http://', 'https://')):
+elif not BASE_URL.startswith(('http://', 'https://')):
     raise ValueError("BASE_URL environment variable does not have http protocol set.")
 
 handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode='w')
