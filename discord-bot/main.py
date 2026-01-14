@@ -1,5 +1,7 @@
 import discord
 import os
+import aiohttp
+import asyncio
 import requests
 import logging
 from discord.ext import commands
@@ -107,11 +109,75 @@ class ServerManager(commands.Cog):
 class MyBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix="!", intents=intents)
+        self.sse_task: asyncio.Task[None] | None = None
+
     
     async def setup_hook(self):
         await self.add_cog(ServerManager(self))
         await self.tree.sync()
+
+        self.sse_task = asyncio.create_task(self.listen_to_sse())
+
         print("Slash commands synced.")
+
+    async def listen_to_sse(self):
+        url = f"{BASE_URL.rstrip('/')}/presence"
+        delay = 5
+
+        while True:
+            try: 
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        url, 
+                        timeout=None, 
+                        headers={"Accept": "text/event-stream"}
+                    ) as resp:
+                        if resp.status != 200:
+                            logging.error(f"SSE connection failed with status: {resp.status}")
+                            raise RuntimeError("Failed to connect to /presence endpoint.")
+
+                        async for raw_line in resp.content:
+                            line = raw_line.decode("utf-8").strip()
+
+                            if not line or not line.startswith("data:"):
+                                continue
+
+                            data = line.removeprefix("data:").strip()
+
+                            await self.update_presence_from_sse(data)
+
+            except Exception as e:
+                logging.error(f"SSE connection dropped: {e}")
+                await asyncio.sleep(delay)
+
+    async def update_presence_from_sse(self, data: str):
+        """
+        current possible data from sse could be:
+        - starting
+        - healthy
+        - inactive
+        - failed
+        """
+
+        match data:
+            case "starting":
+                activity = discord.Game(name="🟡 Spinning up")
+                status = discord.Status.online
+            case "healthy":
+                activity = discord.Game(name="🟢 Online")
+                status = discord.Status.online
+            case "inactive":
+                activity = discord.Game(name="🟠 Offline")
+                status = discord.Status.idle
+            case "failed":
+                activity = discord.Game(name="🟠 Failed (check logs)")
+                status = discord.Status.dnd
+            case _:
+                activity = discord.Game(name="⁉️")
+                status = discord.Status.idle
+
+        await self.change_presence(status=status, activity=activity)
+
 
 bot = MyBot()
 
