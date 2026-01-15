@@ -107,7 +107,7 @@ class ServerManager(commands.Cog):
     @app_commands.command(name="pz_players", description="Lists all current players in server")
     async def list_players(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        response = await self.api_request("GET", "status")
+        response = await self.api_request("GET", "players")
 
         if response is None:
             await interaction.followup.send("❌ Connection Error: Backend is unreachable.")
@@ -115,23 +115,29 @@ class ServerManager(commands.Cog):
 
         match response.status_code:
             case 200:
-                result = response.json()
+                try:
+                    result = response.json()
+                except ValueError:
+                    await interaction.followup.send("Received non-JSON response")
+                    return
 
-                if (not isinstance(result, list) or result.count == 0):
+                if (not isinstance(result, list) or len(result) == 0):
                     await interaction.followup.send("🥶 No Players Online")
 
-                message = f"Players Online: {result.count}\n"
+                message = f"Players Online: {len(result)}"
                 message += ("```")
 
                 for name in result:
-                    message += f"- {name}"
+                    message += f"\n- {name}"
 
                 message += ("```")
                 await interaction.followup.send(message)
             case 409:
                 await interaction.followup.send("⚠️ **Zomboid Server isn't online**")
-            case _:
+            case 500: 
                 await interaction.followup.send(f"🔥 **Backend Error:** {response.json().error}")
+            case _:
+                await interaction.followup.send(f"Unexpected status: {response.status_code}")
 
 
 class MyBot(commands.Bot):
