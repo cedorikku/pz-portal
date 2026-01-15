@@ -79,4 +79,24 @@ router.get('/presence', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/players', async (req: Request, res: Response) => {
+  const result: string[] | CommandResult = await controller.getPlayers();
+
+  // FIX: (low) Add custom type soon (e.g. PlayerCommandResult)
+  // - works for now
+  if (result === 'success') {
+    throw new Error("This string type literal isn't supported");
+  }
+
+  if (result === 'ignored') {
+    return res.sendStatus(409);
+  } else if (Array.isArray(result)) {
+    return res.status(200).json(result);
+  } else {
+    res.status(500).json({
+      error: result.error,
+    });
+  }
+});
+
 export default router;
