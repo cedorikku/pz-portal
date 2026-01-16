@@ -187,7 +187,7 @@ class MyBot(commands.Bot):
         """
         current possible data from sse could be:
         - starting
-        - healthy
+        - healthy {player_count}: int
         - inactive
         - failed
         """
@@ -196,8 +196,10 @@ class MyBot(commands.Bot):
             case "starting":
                 activity = discord.Game(name="🟡 Server Spinning up")
                 status = discord.Status.online
-            case "healthy":
-                activity = discord.Game(name="🟢 Server Online")
+            case s if s.startswith("healthy"):
+                player_count = int(s.removeprefix("healthy "))
+                activity_name = "Server Online" if player_count == 0 else f"Server Online ({player_count} online)"
+                activity = discord.Game(name=f"🟢 {activity_name}")
                 status = discord.Status.online
             case "inactive":
                 activity = discord.Game(name="🟠 Server Offline")
