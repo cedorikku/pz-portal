@@ -25,7 +25,7 @@ handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode='w'
 intents = discord.Intents.default()
 
 class ServerManager(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     async def api_request(self, method: str, endpoint: str):
@@ -39,6 +39,52 @@ class ServerManager(commands.Cog):
             logging.error(f"API Request failed: {e}")
             return None
 
+    async def listen_to_start_sse(self, interaction: discord.Interaction):
+        url = f"{BASE_URL.rstrip('/')}/start/status"
+        delay = 5
+        run = True
+
+        while run:
+            try: 
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        url, 
+                        timeout=None, 
+                        headers={"Accept": "text/event-stream"}
+                    ) as resp:
+                        if resp.status != 200:
+                            logging.error(f"SSE connection failed with status: {resp.status}")
+                            raise RuntimeError("Failed to connect to /start/status endpoint.")
+
+                        async for raw_line in resp.content:
+                            line = raw_line.decode("utf-8").strip()
+
+                            if not line:
+                                continue
+
+                            if line.startswith("event:"):
+                                event = line.removeprefix("event:").strip()
+                                if event == "cancelled":
+                                    await self.notify_start_user(event, interaction)
+                                    return
+
+                            data = line.removeprefix("data:").strip()
+                            await self.notify_start_user(data, interaction)
+
+            except Exception as e:
+                logging.error(f"Start Command SSE connection dropped: {e}")
+                await asyncio.sleep(delay)
+
+    async def notify_start_user(self, status: str, interaction: discord.Interaction):
+        user = interaction.user
+        match status:
+            case "healthy":
+                _ = await interaction.response.send_message(f"🗣️ It's zomboid-ing time! {user.mention}");
+            case "cancelled":
+                _ = await interaction.response.send_message(f"😔 The server you started was cancelled by another user {user.mention}")
+            case _:
+                return
+
     @app_commands.command(name="pz_start", description="Power on the server")
     async def start_server(self, interaction: discord.Interaction):
         await interaction.response.defer()
@@ -48,8 +94,9 @@ class ServerManager(commands.Cog):
             await interaction.followup.send("❌ Connection Error: Backend is unalive :<")
             return
 
-        if response.status_code == 204:
-            await interaction.followup.send("🚀 **Zomboid Server started**")
+        if response.status_code == 202:
+            await interaction.followup.send("🚀 **Initializing Zomboid Server**")
+            asyncio.create_task(self.listen_to_start_sse(interaction))
         elif response.status_code == 409:
             await interaction.followup.send("ℹ️ **Zomboid Server already started**")
         elif response.status_code == 500:
