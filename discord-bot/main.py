@@ -101,7 +101,6 @@ class ServerManager(commands.Cog):
             return
 
         if response.status_code == 202:
-            await interaction.followup.send("🚀 **Initializing Zomboid Server**")
             asyncio.create_task(self.listen_to_start_sse(interaction))
         elif response.status_code == 409:
             await interaction.followup.send("ℹ️ **Zomboid Server already started**")
