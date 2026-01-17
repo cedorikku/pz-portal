@@ -59,17 +59,12 @@ class ServerManager(commands.Cog):
                         async for raw_line in resp.content:
                             line = raw_line.decode("utf-8").strip()
 
-                            if not line:
+                            if not line or not line.startswith("data:"):
                                 continue
 
-                            if line.startswith("event:"):
-                                event = line.removeprefix("event:").strip()
-                                if event == "cancelled":
-                                    run = False
-                                    await self.notify_start_user(event, interaction)
-                                    return
-
                             data = line.removeprefix("data:").strip()
+                            if data in ["healthy", "failed", "cancelled"]:
+                                run = False
                             await self.notify_start_user(data, interaction)
 
             except Exception as e:

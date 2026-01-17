@@ -37,7 +37,7 @@ router.get('/start/status', async (req: Request, res: Response) => {
 
   req.on('close', () => res.end());
   commandStartEmitter.on('cancel', () => {
-    res.write('event: cancelled\n\n');
+    res.write('data: cancelled\n\n');
     res.end();
   });
 
