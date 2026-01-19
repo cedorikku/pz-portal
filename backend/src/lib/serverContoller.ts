@@ -12,23 +12,44 @@ export type CommandResult = 'success' | 'ignored' | { error: string | object };
 export type Status = 'failed' | 'healthy' | 'inactive' | 'starting';
 
 export async function checkStatus(): Promise<Status> {
+  // The name of the container is tightly coupled with its definition in compose
   const command = `docker container inspect --format '{{json .State.Health}}' ${CONTAINER_NAME}`;
 
-  // The name of the container is tightly coupled with its definition in compose
   try {
     const { stdout } = await execPromise(command);
 
     const healthJson = JSON.parse(stdout);
-    const status = healthJson['Status'];
+    let status = healthJson['Status'];
 
-    // Either:
-    // - 'starting'
+    // When 'healthy', verify that server can actually be connected to
+    // before actually returning 'healthy', else return 'starting'
+    if (status === 'healthy') {
+      if (!RCON_PASSWORD) {
+        throw new Error('RCON_PASSWORD is not set');
+      }
+
+      const { stdout } = await execPromise(
+        `docker exec ${CONTAINER_NAME} rcon-cli -a 127.0.0.1:27015 -p ${RCON_PASSWORD} help`
+      );
+
+      if (!/server commands/gi.test(stdout)) {
+        status = 'starting';
+      }
+    }
+
+    // Possible status values:
     // - 'healthy'
+    // - 'starting'
+    // - 'unhealthy'
     return status;
   } catch (err) {
     // inactive'
     if (err && /no such container/i.test(err.toString())) {
       return 'inactive';
+    }
+
+    if (err && /connection refused/i.test(err.toString())) {
+      return 'starting';
     }
 
     // error

@@ -1,19 +1,21 @@
 import type { Request, Response } from 'express';
 import type { CommandResult, Status } from '../lib/serverContoller.js';
 
+import EventEmitter from 'node:events';
 import { Router } from 'express';
 
 import { formatDate } from '../lib/date.js';
 import controller from '../lib/serverContoller.js';
 
 const router = Router();
+const commandStartEmitter = new EventEmitter();
 
 router.post('/start', async (req: Request, res: Response) => {
   const result: CommandResult = await controller.start();
 
   switch (result) {
     case 'success':
-      res.sendStatus(204);
+      res.sendStatus(202);
       console.log(
         `${formatDate(new Date(Date.now()))}: Successfully started server`
       );
@@ -28,12 +30,39 @@ router.post('/start', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/start/status', async (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  req.on('close', () => res.end());
+  commandStartEmitter.on('cancel', () => {
+    res.write('data: cancelled\n\n');
+    res.end();
+  });
+
+  let status: Status = 'starting';
+  res.write(`data: starting\n\n`);
+
+  // Start checking and sending only after minutes have passed
+  const delay = 1000 * 60 * 3;
+  await new Promise((resolve) => setTimeout(resolve, delay));
+
+  while (status !== 'healthy') {
+    status = await controller.checkStatus();
+  }
+
+  res.write(`data: ${status}\n\n`);
+  res.end();
+});
+
 router.post('/stop', async (req: Request, res: Response) => {
   const result: CommandResult = await controller.stop();
 
   switch (result) {
     case 'success':
       res.sendStatus(204);
+      commandStartEmitter.emit('cancel');
       console.log(
         `${formatDate(new Date(Date.now()))}: Successfully stopped server`
       );
