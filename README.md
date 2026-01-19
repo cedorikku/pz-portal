@@ -1,34 +1,43 @@
-# TypeScript-Express Starter
+# Introduction
 
-A simple and modern template for typescript
+I wanted a way to let me and my friends interact with our own-self-hosted Project Zomboid game server . So I tinkered around and we got the idea to make a discord bot out of it
 
-## Installation Instructions
+Works with Docker and systemd
 
-Initialize a new node project, with pnpm (or your preferred package manager)
+Based on the docker server by @indifferentbroccoli: [https://github.com/indifferentbroccoli/projectzomboid-server-docker]
 
-```shell
-pnpm init
+## Requirements
+- Node (v20.6+ - to support --env-file in cli)
+- Docker
+
+## Installation
+
+1. In the current project directory, copy the service files if not copied yet
+```sh
+sudo cp *.service /lib/systemd/system/
 ```
 
-Install express with cors
+2. Edit both the service files
 
-```shell
-pnpm i express cors
+```sh
+sudo cp *.service ./
+sudo systemctl daemon-reload # load
+sudo systemctl enable service
+sudo systemctl start service
 ```
 
-Install typescript and type definitions
-
-```shell
-pnpm i -D typescript @types/node @types/express @types/cors
+Restarting
+```sh
+sudo systemctl daemon-reload # load
+sudo systemctl restart pz-server-api.service && sudo systemctl restart pz-discord-bot.service
 ```
 
-Install formatter and linter for typescript, with stylistic choices
-
-```shell
-pnpm i -D eslint typescript-eslint @eslint/js eslint-plugin-perfectionist prettier eslint-config-prettier
+Setting up env files
+```
+PORT
+CONTAINER_NAME=projectzomboid
+COMPOSE_FILE
+RCON_PASSWORD
 ```
 
-## Helpful References
-
-- https://medium.com/@gabrieldrouin/node-js-2025-guide-how-to-setup-express-js-with-typescript-eslint-and-prettier-b342cd21c30d
-- https://dev.to/woovi/a-modern-nodejs-typescript-setup-for-2025-nlk
+Expose backend/api port in firewall
