@@ -170,7 +170,8 @@ class ServerManager(commands.Cog):
 
                 if (not isinstance(result, list) or len(result) == 0):
                     await interaction.followup.send("🥶 No Players Online")
-
+                    return
+                    
                 message = f"Players Online: {len(result)}"
                 message += ("```")
 
@@ -181,7 +182,7 @@ class ServerManager(commands.Cog):
                 await interaction.followup.send(message)
             case 409:
                 await interaction.followup.send("⚠️ **Zomboid Server isn't online**")
-            case 500: 
+            case 500:
                 await interaction.followup.send(f"🔥 **Backend Error:** {response.json().error}")
             case _:
                 await interaction.followup.send(f"Unexpected status: {response.status_code}")
