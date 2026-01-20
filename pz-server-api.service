@@ -1,15 +1,17 @@
 [Unit]
 Description=PZ Server API with node.js
-Documentation=https://github.com/cedorikku/pz-portal
+Documentation=https://github.com/cedorikku/pz-manager
 After=network.target
 
 [Service]
-Environment=PORT=<port>
+WorkingDirectory=<project-directory>
+Environment=PORT=9000
 Environment=COMPOSE_FILE=<file>
-Environment=CONTAINER_NAME=<server-container-name>
+Environment=CONTAINER_NAME=projectzomboid
+Environment=RCON_PASSWORD=<your-password>
 Type=simple
 User=<user>
-ExecStart=<your-node-install-in-bin> <your node index file>
+ExecStart=<your-node-install-in-bin> backend/dist/index.js
 Restart=on-failure
 
 [Install]

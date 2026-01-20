@@ -1,13 +1,14 @@
 [Unit]
 Description=PZ Discord Bot with python
-Documentation=https://github.com/cedorikku/pz-portal
+Documentation=https://github.com/cedorikku/pz-manager
 After=network.target
 After=pz-server-api.service
 
 [Service]
+WorkingDirectory=<project-directory>
 Type=simple
 User=<user>
-ExecStart=docker compose -f <path-to-docker-compose.yml> up
+ExecStart=docker compose -f discord-bot/docker-compose.yml up
 Restart=on-failure
 
 [Install]
